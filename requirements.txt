@@ -1,0 +1,31 @@
+# ==============================
+# Backend
+# ==============================
+fastapi[standard]
+pydantic-settings
+
+# ==============================
+# AI Agent Framework
+# ==============================
+langchain
+langgraph
+langchain-community
+langchain-text-splitters
+
+# ==============================
+# Document Processing
+# ==============================
+pypdf
+python-docx
+
+# ==============================
+# Environment & Configuration
+# ==============================
+python-dotenv
+
+# ==============================
+# Testing
+# ==============================
+pytest
+pytest-asyncio
+httpx
