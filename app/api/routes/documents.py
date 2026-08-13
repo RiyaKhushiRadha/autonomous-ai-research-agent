@@ -9,4 +9,4 @@ router = APIRouter()
 
 @router.post("/documents/upload", response_model=DocumentUploadResponse)
 async def upload_document(file: UploadFile = File(...)):
-    return await document_service.upload_document(file.filename)
+    return await document_service.upload_document(file)

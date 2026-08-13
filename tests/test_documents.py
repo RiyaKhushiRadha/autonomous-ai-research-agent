@@ -27,4 +27,4 @@ def test_document_upload():
     data = response.json()
 
     assert data["filename"] == "sample.txt"
-    assert data["message"] == "Document upload endpoint is ready."
+    assert data["message"] == "Document uploaded and indexed successfully."

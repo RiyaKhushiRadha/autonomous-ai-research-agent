@@ -17,4 +17,7 @@ def test_research_endpoint():
     data = response.json()
 
     assert data["query"] == "What is RAG?"
-    assert "answer" in data
+    assert isinstance(data["answer"], str)
+    assert len(data["answer"]) > 0
+    assert "verification" in data
+    assert data["verification"]["verified"] is True

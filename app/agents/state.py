@@ -1,6 +1,11 @@
 from typing import TypedDict
 
 
-class ResearchState(TypedDict, total=False):
+class ResearchState(TypedDict):
     query: str
-    answer: str
+    plan: str
+    web_results: list[dict]
+    rag_results: list[str]
+    draft: str
+    verification: str
+    final_answer: str

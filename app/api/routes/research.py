@@ -9,9 +9,10 @@ router = APIRouter()
 
 @router.post("/research", response_model=ResearchResponse)
 async def research(request: ResearchRequest):
-    answer = await research_service.research(request.query)
+    result = await research_service.research(request.query)
 
     return ResearchResponse(
         query=request.query,
-        answer=answer,
+        answer=result["answer"],
+        verification=result["verification"],
     )

@@ -8,3 +8,4 @@ class ResearchRequest(BaseModel):
 class ResearchResponse(BaseModel):
     query: str
     answer: str
+    verification: dict
