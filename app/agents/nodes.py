@@ -4,46 +4,66 @@ from app.tools.web_search import search_web
 
 from app.rag.retriever import retrieve_documents
 
-def research_node(state: ResearchState) -> ResearchState:
-    query = state["query"]
+from app.services.llm_service import generate_text
 
+async def research_node(state: ResearchState) -> ResearchState:
+    query = state["query"]
+    plan = state.get("plan", "")
     web_results = state.get("web_results", [])
     rag_results = state.get("rag_results", [])
 
-    answer_parts = [
-        f"Research findings for: {query}",
-        "",
-        "Web Research:",
-    ]
+    prompt = f"""
+You are an AI research assistant.
 
-    for result in web_results[:3]:
-        answer_parts.append(
-            f"- {result.get('title', '')}: {result.get('content', '')}"
-        )
+Research Question:
+{query}
 
-    answer_parts.append("")
-    answer_parts.append("Uploaded Document Research:")
+Research Plan:
+{plan}
 
-    for result in rag_results[:3]:
-        answer_parts.append(f"- {result}")
+Web Research:
+{web_results}
 
-    final_answer = "\n".join(answer_parts)
+Uploaded Document Research:
+{rag_results}
+
+Using the available research information, generate a clear and accurate answer.
+
+Rules:
+- Use the provided research information.
+- Do not invent facts.
+- If the available information is insufficient, clearly say so.
+- Keep the answer concise and useful.
+"""
+
+    final_answer = await generate_text(prompt)
 
     return {
         **state,
         "final_answer": final_answer,
     }
 
-def planner_node(state: ResearchState) -> ResearchState:
+async def planner_node(state: ResearchState) -> ResearchState:
     query = state["query"]
 
-    plan = (
-        f"1. Understand the research question: {query}\n"
-        "2. Search for relevant information from web sources.\n"
-        "3. Check relevant information from uploaded documents.\n"
-        "4. Combine the research findings.\n"
-        "5. Verify the important information before producing the final answer."
-    )
+    prompt = f"""
+You are a research planning agent.
+
+Create a clear research plan for this question:
+
+{query}
+
+The plan should include:
+1. What needs to be understood
+2. What information should be searched on the web
+3. What information should be checked from uploaded documents
+4. How the findings should be combined
+5. What should be verified before the final answer
+
+Return only the research plan.
+"""
+
+    plan = await generate_text(prompt)
 
     return {
         **state,
@@ -85,18 +105,57 @@ def rag_research_node(state: ResearchState) -> ResearchState:
         "rag_results": results,
     }
 
-def verification_node(state: ResearchState) -> ResearchState:
+async def verification_node(state: ResearchState) -> ResearchState:
+    query = state["query"]
+    final_answer = state.get("final_answer", "")
     web_results = state.get("web_results", [])
     rag_results = state.get("rag_results", [])
+    retry_count = state.get("retry_count", 0)
 
-    verification = {
-        "web_sources_found": len(web_results),
-        "document_sources_found": len(rag_results),
-        "verified": bool(web_results or rag_results),
-    }
+    prompt = f"""
+You are a research verification agent.
+
+Research Question:
+{query}
+
+Generated Answer:
+{final_answer}
+
+Available Web Evidence:
+{web_results}
+
+Available Document Evidence:
+{rag_results}
+
+Check whether the generated answer is properly supported by the available evidence.
+
+Return ONLY valid JSON in this format:
+
+{{
+    "verified": true,
+    "reason": "short explanation"
+}}
+
+Set "verified" to false if the answer contains unsupported or unreliable information.
+"""
+
+    result = await generate_text(prompt)
+
+    import json
+
+    try:
+        verification = json.loads(result)
+    except json.JSONDecodeError:
+        verification = {
+            "verified": False,
+            "reason": "Verification response could not be parsed.",
+        }
+
+    if verification.get("verified") is False:
+        retry_count += 1
 
     return {
         **state,
         "verification": verification,
+        "retry_count": retry_count,
     }
-

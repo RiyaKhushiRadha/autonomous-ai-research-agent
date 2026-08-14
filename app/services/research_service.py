@@ -6,12 +6,16 @@ class ResearchService:
     async def research(self, query: str) -> dict:
         initial_state = {
             "query": query,
-            "plan": [],
+            "plan": "",
             "web_results": [],
             "rag_results": [],
+            "draft": "",
+            "verification": {},
+            "final_answer": "",
+            "retry_count": 0,
         }
 
-        result = research_graph.invoke(initial_state)
+        result = await research_graph.ainvoke(initial_state)
 
         verification = result.get("verification", {})
 

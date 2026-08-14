@@ -7,5 +7,6 @@ class ResearchState(TypedDict):
     web_results: list[dict]
     rag_results: list[str]
     draft: str
-    verification: str
+    verification: dict
     final_answer: str
+    retry_count: int
