@@ -1,14 +1,15 @@
-import google.generativeai as genai
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 from app.config.settings import settings
 
 
-genai.configure(api_key=settings.gemini_api_key)
-
-model = genai.GenerativeModel("gemini-2.5-flash")
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash",
+    google_api_key=settings.gemini_api_key,
+)
 
 
 async def generate_text(prompt: str) -> str:
-    response = model.generate_content(prompt)
+    response = await llm.ainvoke(prompt)
 
-    return response.text
+    return response.content
