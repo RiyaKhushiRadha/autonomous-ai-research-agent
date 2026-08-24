@@ -1,7 +1,14 @@
+import uuid
+
 from app.agents.graph import research_graph
+from app.rag.retriever import RetrievalServiceError
+from app.services.llm_service import LLMServiceError
 
 
 class ResearchService:
+
+    def __init__(self):
+        self.research_results = {}
 
     async def research(self, query: str) -> dict:
         initial_state = {
@@ -9,21 +16,65 @@ class ResearchService:
             "plan": "",
             "web_results": [],
             "rag_results": [],
+            "web_error": None,
+            "rag_error": None,
             "draft": "",
             "verification": {},
             "final_answer": "",
             "retry_count": 0,
         }
 
-        result = await research_graph.ainvoke(initial_state)
+        try:
+            result = await research_graph.ainvoke(initial_state)
+
+        except (LLMServiceError, RetrievalServiceError) as exc:
+            return {
+                "query": query,
+                "answer": (
+                    "The research could not be completed because "
+                    "a required AI service or document retrieval service "
+                    "is currently unavailable."
+                ),
+                "verification": {
+                    "verified": False,
+                    "reason": str(exc),
+                },
+            }
 
         verification = result.get("verification", {})
+        retry_count = result.get("retry_count", 0)
 
-        return {
+        if (
+            verification.get("verified") is False
+            and retry_count >= 2
+        ):
+            verification = {
+                **verification,
+                "reason": (
+                    verification.get("reason", "")
+                    + " Maximum verification retries reached; "
+                    "returning the best available answer."
+                ).strip(),
+            }
+
+        research_id = str(uuid.uuid4())
+
+        research_result = {
+            "research_id": research_id,
             "query": query,
-            "answer": result.get("final_answer", "Research completed."),
+            "answer": result.get(
+                "final_answer",
+                "Research completed.",
+            ),
             "verification": verification,
         }
+
+        self.research_results[research_id] = research_result
+
+        return research_result
+
+    def get_research(self, research_id: str) -> dict | None:
+        return self.research_results.get(research_id)
 
 
 research_service = ResearchService()

@@ -7,16 +7,26 @@ from app.rag.embeddings import create_query_embedding
 from app.rag.vector_store import vector_store
 
 
+class RetrievalServiceError(Exception):
+    """Raised when document retrieval fails."""
+
+
 def retrieve_documents(
     query: str,
     top_k: int = 3,
 ) -> list[str]:
-    query_embedding = create_query_embedding(query)
+    try:
+        query_embedding = create_query_embedding(query)
 
-    return vector_store.search(
-        query_embedding=query_embedding,
-        top_k=top_k,
-    )
+        return vector_store.search(
+            query_embedding=query_embedding,
+            top_k=top_k,
+        )
+
+    except Exception as exc:
+        raise RetrievalServiceError(
+            f"Document retrieval failed: {exc}"
+        ) from exc
 
 
 class DocumentRetriever(BaseRetriever):

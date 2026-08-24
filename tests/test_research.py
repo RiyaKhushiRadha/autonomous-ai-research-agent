@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
+client = TestClient(app)
 
 def test_research_endpoint(monkeypatch):
 
@@ -46,3 +47,44 @@ def test_research_endpoint(monkeypatch):
     assert len(data["answer"]) > 0
     assert "verification" in data
     assert data["verification"]["verified"] is True
+
+
+def test_get_research_by_id():
+    response = client.post(
+        "/research",
+        json={"query": "What is RAG?"},
+    )
+
+    assert response.status_code == 200
+
+    created = response.json()
+
+    assert created["research_id"]
+
+    research_id = created["research_id"]
+
+    get_response = client.get(
+        f"/research/{research_id}"
+    )
+
+    assert get_response.status_code == 200
+
+    data = get_response.json()
+
+    assert data["research_id"] == research_id
+    assert data["query"] == "What is RAG?"
+    assert isinstance(data["answer"], str)
+    assert "verification" in data
+
+
+def test_get_research_not_found():
+    response = client.get(
+        "/research/does-not-exist"
+    )
+
+    assert response.status_code == 404
+
+    data = response.json()
+
+    assert data["detail"] == "Research result not found."
+

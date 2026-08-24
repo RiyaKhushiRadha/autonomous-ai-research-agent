@@ -6,6 +6,7 @@ class ResearchRequest(BaseModel):
 
 
 class ResearchResponse(BaseModel):
+    research_id: str
     query: str
     answer: str
     verification: dict

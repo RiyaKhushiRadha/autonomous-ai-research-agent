@@ -1,5 +1,4 @@
-from pathlib import Path
-
+from docx import Document
 from pypdf import PdfReader
 
 
@@ -15,3 +14,17 @@ def load_pdf(file_path: str) -> str:
             pages.append(text)
 
     return "\n".join(pages)
+
+
+def load_docx(file_path: str) -> str:
+    document = Document(file_path)
+
+    paragraphs = []
+
+    for paragraph in document.paragraphs:
+        text = paragraph.text.strip()
+
+        if text:
+            paragraphs.append(text)
+
+    return "\n".join(paragraphs)

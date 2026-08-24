@@ -9,7 +9,20 @@ llm = ChatGoogleGenerativeAI(
 )
 
 
-async def generate_text(prompt: str) -> str:
-    response = await llm.ainvoke(prompt)
+class LLMServiceError(Exception):
+    """Raised when the LLM service fails."""
 
-    return response.content
+
+async def generate_text(prompt: str) -> str:
+    try:
+        response = await llm.ainvoke(prompt)
+
+        if not response or not response.content:
+            raise LLMServiceError("LLM returned an empty response.")
+
+        return response.content
+
+    except Exception as exc:
+        raise LLMServiceError(
+            f"LLM service failed: {exc}"
+        ) from exc

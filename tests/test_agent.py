@@ -1,5 +1,11 @@
 from app.agents.graph import research_graph
 
+from app.agents.graph import MAX_RETRIES, verification_router
+
+from app.agents.nodes import web_research_node, rag_research_node
+
+from app.rag.retriever import RetrievalServiceError
+
 import pytest
 
 
@@ -45,3 +51,84 @@ async def test_research_graph(monkeypatch):
     assert result["final_answer"]
     assert "verification" in result
     assert result["verification"]["verified"] is True
+
+def test_verification_router_stops_after_max_retries():
+    state = {
+        "query": "test",
+        "plan": "",
+        "web_results": [],
+        "rag_results": [],
+        "draft": "",
+        "verification": {
+            "verified": False,
+            "reason": "Not sufficiently supported.",
+        },
+        "final_answer": "Best available answer.",
+        "retry_count": MAX_RETRIES,
+    }
+
+    assert verification_router(state) == "end"
+
+def test_web_research_node_preserves_error(monkeypatch):
+    def mock_search_web(_):
+        return {
+            "results": [],
+            "error": "Web search failed: Tavily unavailable",
+        }
+
+    monkeypatch.setattr(
+        "app.agents.nodes.search_web",
+        mock_search_web,
+    )
+
+    state = {
+        "query": "What is RAG?",
+        "plan": "",
+        "web_results": [],
+        "rag_results": [],
+        "web_error": None,
+        "rag_error": None,
+        "draft": "",
+        "verification": {},
+        "final_answer": "",
+        "retry_count": 0,
+    }
+
+    result = web_research_node(state)
+
+    assert result["web_results"] == []
+    assert result["web_error"] == "Web search failed: Tavily unavailable"
+
+def test_rag_research_node_preserves_error(monkeypatch):
+    def mock_retrieve_documents_tool(_):
+        raise RetrievalServiceError("Vector store unavailable")
+
+    monkeypatch.setattr(
+        "app.agents.nodes.retrieve_documents_tool",
+        type(
+            "MockRetrievalTool",
+            (),
+            {
+                "invoke": staticmethod(mock_retrieve_documents_tool),
+            },
+        )(),
+    )
+
+    state = {
+        "query": "What is RAG?",
+        "plan": "",
+        "web_results": [],
+        "rag_results": [],
+        "web_error": None,
+        "rag_error": None,
+        "draft": "",
+        "verification": {},
+        "final_answer": "",
+        "retry_count": 0,
+    }
+
+    result = rag_research_node(state)
+
+    assert result["rag_results"] == []
+    assert "Vector store unavailable" in result["rag_error"]
+

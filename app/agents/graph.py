@@ -11,6 +11,9 @@ from app.agents.nodes import (
 from app.agents.state import ResearchState
 
 
+MAX_RETRIES = 2
+
+
 workflow = StateGraph(ResearchState)
 
 
@@ -28,7 +31,7 @@ def verification_router(state: ResearchState) -> str:
     if verification.get("verified") is True:
         return "end"
 
-    if retry_count < 2:
+    if retry_count < MAX_RETRIES:
         return "retry"
 
     return "end"

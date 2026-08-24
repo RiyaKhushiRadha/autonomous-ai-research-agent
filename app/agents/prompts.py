@@ -34,19 +34,25 @@ research_prompt = ChatPromptTemplate.from_template(
         Web Research:
         {web_results}
 
+        Web Research Error:
+        {web_error}
+
         Uploaded Document Research:
         {rag_results}
+
+        Document Retrieval Error:
+        {rag_error}
 
         Using the available research information, generate a clear and accurate answer.
 
         Rules:
         - Use the provided research information.
         - Do not invent facts.
-        - If the available information is insufficient, clearly say so.
+        - Treat source errors as unavailable information.
+        - If important information is unavailable, clearly mention the limitation.
         - Keep the answer concise and useful.
         """
     )
-
 
 verification_prompt = ChatPromptTemplate.from_template(
     """

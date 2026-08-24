@@ -12,17 +12,23 @@ from app.agents.prompts import (
     verification_prompt,
 )
 
+from app.rag.retriever import RetrievalServiceError
+
 async def research_node(state: ResearchState) -> ResearchState:
     query = state["query"]
     plan = state.get("plan", "")
     web_results = state.get("web_results", [])
     rag_results = state.get("rag_results", [])
+    web_error = state.get("web_error")
+    rag_error = state.get("rag_error")
 
     prompt = research_prompt.format(
         query=query,
         plan=plan,
         web_results=web_results,
         rag_results=rag_results,
+        web_error=web_error or "None",
+        rag_error=rag_error or "None",
     )
 
     final_answer = await generate_text(prompt)
@@ -63,23 +69,35 @@ def web_research_node(state: ResearchState) -> ResearchState:
             }
         )
 
+    web_error = results.get("error")
+
     return {
         **state,
         "web_results": web_results,
+        "web_error": web_error,
     }
 
 def rag_research_node(state: ResearchState) -> ResearchState:
     query = state["query"]
 
-    results = retrieve_documents_tool.invoke(
-        {"query": query}
-    )
+    try:
+        results = retrieve_documents_tool.invoke(
+            {"query": query}
+        )
 
-    return {
-        **state,
-        "rag_results": results,
-    }
+        return {
+            **state,
+            "rag_results": results,
+            "rag_error": None,
+        }
 
+    except RetrievalServiceError as exc:
+        return {
+            **state,
+            "rag_results": [],
+            "rag_error": str(exc),
+        }
+    
 async def verification_node(state: ResearchState) -> ResearchState:
     query = state["query"]
     final_answer = state.get("final_answer", "")
