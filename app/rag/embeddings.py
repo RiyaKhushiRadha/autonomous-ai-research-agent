@@ -1,22 +1,17 @@
-from sentence_transformers import SentenceTransformer
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
+from app.config.settings import settings
 
 
-_model = SentenceTransformer("all-MiniLM-L6-v2")
+_embeddings_model = GoogleGenerativeAIEmbeddings(
+    model="models/text-embedding-004",
+    google_api_key=settings.gemini_api_key,
+)
 
 
 def create_embeddings(texts: list[str]) -> list[list[float]]:
-    embeddings = _model.encode(
-        texts,
-        normalize_embeddings=True,
-    )
-
-    return embeddings.tolist()
+    return _embeddings_model.embed_documents(texts)
 
 
 def create_query_embedding(query: str) -> list[float]:
-    embedding = _model.encode(
-        [query],
-        normalize_embeddings=True,
-    )
-
-    return embedding[0].tolist()
+    return _embeddings_model.embed_query(query)
