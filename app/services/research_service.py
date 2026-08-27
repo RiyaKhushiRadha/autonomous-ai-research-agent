@@ -1,6 +1,6 @@
 import uuid
 
-from app.agents.graph import research_graph
+from app.agents.graph import research_graph, MAX_RETRIES
 from app.rag.retriever import RetrievalServiceError
 from app.services.llm_service import LLMServiceError
 
@@ -11,6 +11,8 @@ class ResearchService:
         self.research_results = {}
 
     async def research(self, query: str) -> dict:
+        research_id = str(uuid.uuid4())
+
         initial_state = {
             "query": query,
             "plan": "",
@@ -28,7 +30,8 @@ class ResearchService:
             result = await research_graph.ainvoke(initial_state)
 
         except (LLMServiceError, RetrievalServiceError) as exc:
-            return {
+            research_result = {
+                "research_id": research_id,
                 "query": query,
                 "answer": (
                     "The research could not be completed because "
@@ -41,12 +44,16 @@ class ResearchService:
                 },
             }
 
+            self.research_results[research_id] = research_result
+
+            return research_result
+
         verification = result.get("verification", {})
         retry_count = result.get("retry_count", 0)
 
         if (
             verification.get("verified") is False
-            and retry_count >= 2
+            and retry_count >= MAX_RETRIES
         ):
             verification = {
                 **verification,
@@ -56,8 +63,6 @@ class ResearchService:
                     "returning the best available answer."
                 ).strip(),
             }
-
-        research_id = str(uuid.uuid4())
 
         research_result = {
             "research_id": research_id,

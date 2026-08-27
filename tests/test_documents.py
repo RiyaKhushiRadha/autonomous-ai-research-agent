@@ -201,3 +201,15 @@ def test_upload_file_too_large():
         == "File size exceeds the maximum allowed limit of 10 MB."
     )
 
+
+def test_delete_document_not_found():
+    response = client.delete(
+        "/documents/non-existent-document-id"
+    )
+
+    assert response.status_code == 404
+
+    data = response.json()
+
+    assert data["detail"] == "Document not found."
+

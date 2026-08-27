@@ -132,3 +132,37 @@ def test_rag_research_node_preserves_error(monkeypatch):
     assert result["rag_results"] == []
     assert "Vector store unavailable" in result["rag_error"]
 
+@pytest.mark.asyncio
+async def test_verification_handles_invalid_json(monkeypatch):
+    async def mock_generate_text(prompt):
+        return "This is not valid JSON."
+
+    monkeypatch.setattr(
+        "app.agents.nodes.generate_text",
+        mock_generate_text,
+    )
+
+    state = {
+        "query": "What is RAG?",
+        "plan": "Understand RAG.",
+        "web_results": [],
+        "rag_results": [],
+        "web_error": None,
+        "rag_error": None,
+        "draft": "",
+        "verification": {},
+        "final_answer": "RAG retrieves relevant information and uses it to generate an answer.",
+        "retry_count": 0,
+    }
+
+    from app.agents.nodes import verification_node
+
+    result = await verification_node(state)
+
+    assert result["verification"]["verified"] is False
+    assert (
+        result["verification"]["reason"]
+        == "Verification response could not be parsed."
+    )
+    assert result["retry_count"] == 1
+

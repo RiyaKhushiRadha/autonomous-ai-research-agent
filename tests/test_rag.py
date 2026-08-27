@@ -1,20 +1,40 @@
+import pytest
+
+from app.rag.embeddings import create_embeddings
 from app.rag.retriever import retrieve_documents
 from app.rag.vector_store import vector_store
 
 
+@pytest.fixture(autouse=True)
+def clear_vector_store():
+    yield
+    vector_store.documents = []
+    vector_store.embeddings = []
+    vector_store.document_ids = []
+
+
 def test_retrieve_uploaded_document():
-    # This test expects the document to already be indexed
-    # in the in-memory vector store.
+    documents = [
+        "RAG stands for Retrieval-Augmented Generation.",
+        "RAG retrieves relevant information before generating an answer.",
+    ]
 
-    if not vector_store.documents:
-        return
+    embeddings = create_embeddings(documents)
 
-    query = "What is the main topic of this document?"
+    vector_store.add_documents(
+        documents,
+        embeddings,
+        "test-document",
+    )
 
     results = retrieve_documents(
-        query=query,
-        top_k=3,
+        query="What is Retrieval-Augmented Generation?",
+        top_k=2,
     )
 
     assert isinstance(results, list)
     assert len(results) > 0
+    assert any(
+        "Retrieval-Augmented Generation" in result
+        for result in results
+    )

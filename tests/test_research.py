@@ -2,6 +2,8 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
+import pytest
+
 client = TestClient(app)
 
 def test_research_endpoint(monkeypatch):
@@ -49,7 +51,33 @@ def test_research_endpoint(monkeypatch):
     assert data["verification"]["verified"] is True
 
 
-def test_get_research_by_id():
+def test_get_research_by_id(monkeypatch):
+
+    async def mock_generate_text(prompt):
+        if "research planning agent" in prompt:
+            return (
+                "1. Understand RAG\n"
+                "2. Explain retrieval and generation\n"
+                "3. Verify the explanation"
+            )
+
+        if "research verification agent" in prompt:
+            return (
+                '{"verified": true, '
+                '"reason": "Answer is supported by the available research."}'
+            )
+
+        return (
+            "RAG is Retrieval-Augmented Generation. "
+            "It retrieves relevant information and uses it to generate "
+            "a more accurate answer."
+        )
+
+    monkeypatch.setattr(
+        "app.agents.nodes.generate_text",
+        mock_generate_text,
+    )
+
     response = client.post(
         "/research",
         json={"query": "What is RAG?"},
@@ -87,4 +115,37 @@ def test_get_research_not_found():
     data = response.json()
 
     assert data["detail"] == "Research result not found."
+
+
+def test_research_invalid_query():
+    response = client.post(
+        "/research",
+        json={"query": "Hi"},
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_research_handles_llm_failure(monkeypatch):
+    from app.services.llm_service import LLMServiceError
+
+    async def mock_generate_text(_):
+        raise LLMServiceError("Gemini unavailable")
+
+    monkeypatch.setattr(
+        "app.agents.nodes.generate_text",
+        mock_generate_text,
+    )
+
+    from app.services.research_service import research_service
+
+    result = await research_service.research(
+        "What is RAG?"
+    )
+
+    assert result["query"] == "What is RAG?"
+    assert "could not be completed" in result["answer"]
+    assert result["verification"]["verified"] is False
+    assert "Gemini unavailable" in result["verification"]["reason"]
 

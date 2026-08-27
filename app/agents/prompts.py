@@ -46,13 +46,19 @@ research_prompt = ChatPromptTemplate.from_template(
         Using the available research information, generate a clear and accurate answer.
 
         Rules:
-        - Use the provided research information.
-        - Do not invent facts.
-        - Treat source errors as unavailable information.
-        - If important information is unavailable, clearly mention the limitation.
+        - Prefer the provided web and document research information when it is available.
+        - Do not invent facts that contradict the provided research information.
+        - Treat source errors as unavailable information, not as a reason to refuse.
+        - If NO web results and NO document results are available (both empty),
+          answer the question using your own general knowledge instead, and
+          clearly state at the end: "Note: This answer is based on general
+          knowledge, as no web or document sources were available."
+        - If only some information is missing, mention that limitation briefly
+          but still give the best possible answer.
         - Keep the answer concise and useful.
         """
     )
+
 
 verification_prompt = ChatPromptTemplate.from_template(
     """
@@ -71,6 +77,9 @@ verification_prompt = ChatPromptTemplate.from_template(
         {rag_results}
 
         Check whether the generated answer is properly supported by the available evidence.
+        If the answer explicitly states it is based on general knowledge because no
+        sources were available, treat that as acceptable and verified, as long as it
+        does not contradict any evidence that IS present.
 
         Return ONLY valid JSON in this format:
 
@@ -79,6 +88,7 @@ verification_prompt = ChatPromptTemplate.from_template(
             "reason": "short explanation"
         }}
 
-        Set "verified" to false if the answer contains unsupported or unreliable information.
+        Set "verified" to false only if the answer contains information that
+        contradicts or is unsupported by the available evidence.
         """
     )

@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import tempfile
 import uuid
 
@@ -38,29 +39,38 @@ class DocumentService:
             )
 
         document_id = str(uuid.uuid4())
+        temp_file_path = None
 
-        if suffix == ".pdf":
-            with tempfile.NamedTemporaryFile(
-                delete=False,
-                suffix=".pdf",
-            ) as temp_file:
-                temp_file.write(content)
-                temp_file_path = temp_file.name
+        try:
+            if suffix == ".pdf":
+                with tempfile.NamedTemporaryFile(
+                    delete=False,
+                    suffix=".pdf",
+                ) as temp_file:
+                    temp_file.write(content)
+                    temp_file_path = temp_file.name
 
-            text = load_pdf(temp_file_path)
+                text = load_pdf(temp_file_path)
 
-        elif suffix == ".docx":
-            with tempfile.NamedTemporaryFile(
-                delete=False,
-                suffix=".docx",
-            ) as temp_file:
-                temp_file.write(content)
-                temp_file_path = temp_file.name
+            elif suffix == ".docx":
+                with tempfile.NamedTemporaryFile(
+                    delete=False,
+                    suffix=".docx",
+                ) as temp_file:
+                    temp_file.write(content)
+                    temp_file_path = temp_file.name
 
-            text = load_docx(temp_file_path)
+                text = load_docx(temp_file_path)
 
-        else:
-            text = content.decode("utf-8")
+            else:
+                text = content.decode("utf-8")
+
+        finally:
+            if temp_file_path is not None:
+                try:
+                    os.unlink(temp_file_path)
+                except OSError:
+                    pass
 
         if not text.strip():
             raise ValueError("Uploaded document contains no readable text.")

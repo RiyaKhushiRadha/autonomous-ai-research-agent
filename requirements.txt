@@ -3,6 +3,7 @@
 # ==============================
 fastapi[standard]
 pydantic-settings
+python-multipart
 
 # ==============================
 # AI Agent Framework
@@ -11,6 +12,7 @@ langchain
 langgraph
 langchain-community
 langchain-text-splitters
+langchain-tavily
 
 # ==============================
 # AI / LLM
@@ -23,6 +25,12 @@ google-generativeai
 # ==============================
 pypdf
 python-docx
+
+# ==============================
+# RAG / Embeddings
+# ==============================
+sentence-transformers
+numpy
 
 # ==============================
 # Environment & Configuration
