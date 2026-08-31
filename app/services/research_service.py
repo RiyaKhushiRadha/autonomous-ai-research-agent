@@ -10,11 +10,16 @@ class ResearchService:
     def __init__(self):
         self.research_results = {}
 
-    async def research(self, query: str) -> dict:
+    async def research(
+        self,
+        query: str,
+        document_ids: list[str] | None = None,
+    ) -> dict:
         research_id = str(uuid.uuid4())
 
         initial_state = {
             "query": query,
+            "document_ids": document_ids,
             "plan": "",
             "web_results": [],
             "rag_results": [],

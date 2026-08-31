@@ -46,6 +46,10 @@ research_prompt = ChatPromptTemplate.from_template(
         Using the available research information, generate a clear and accurate answer.
 
         Rules:
+        - When uploaded document research is available, use it as evidence in the answer;
+          do not ignore it in favour of web research.
+        - Combine uploaded-document evidence with web research. Clearly distinguish
+          document-specific findings from current web findings when they differ.
         - Prefer the provided web and document research information when it is available.
         - Do not invent facts that contradict the provided research information.
         - Treat source errors as unavailable information, not as a reason to refuse.

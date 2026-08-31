@@ -9,12 +9,13 @@ from app.models.documents import (
 from app.services.document_service import document_service
 
 
-router = APIRouter()
+router = APIRouter(tags=["Documents"])
 
 
 @router.post(
-    "/documents/upload",
-    response_model=DocumentUploadResponse,
+    "/documents/upload", response_model=DocumentUploadResponse,
+    summary="Upload a document for RAG",
+    description="Uploads a PDF, DOCX, or TXT file (max 10 MB), chunks it, embeds it, and indexes it for retrieval.",
 )
 async def upload_document(file: UploadFile = File(...)):
     try:
@@ -28,8 +29,9 @@ async def upload_document(file: UploadFile = File(...)):
 
 
 @router.get(
-    "/documents",
-    response_model=DocumentListResponse,
+    "/documents", response_model=DocumentListResponse,
+    summary="List uploaded documents",
+    description="Returns all documents currently indexed and available for retrieval.",
 )
 async def list_documents():
     return {
@@ -38,8 +40,9 @@ async def list_documents():
 
 
 @router.delete(
-    "/documents/{document_id}",
-    response_model=DocumentDeleteResponse,
+    "/documents/{document_id}", response_model=DocumentDeleteResponse,
+    summary="Delete a document",
+    description="Removes a document and its chunks from the index.",
 )
 async def delete_document(document_id: str):
     try:

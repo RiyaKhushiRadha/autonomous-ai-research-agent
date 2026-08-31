@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Autonomous AI Research Agent</title>
+  <style>
+    :root { color-scheme: light; font-family: Arial, sans-serif; }
+    body { max-width: 760px; margin: 48px auto; padding: 0 20px; color: #182230; }
+    h1 { margin-bottom: 8px; }
+    .card { margin-top: 24px; padding: 24px; border: 1px solid #d8dee8; border-radius: 12px; }
+    label { display: block; margin-top: 16px; font-weight: 600; }
+    input { box-sizing: border-box; width: 100%; margin-top: 8px; padding: 12px; border: 1px solid #aeb9c9; border-radius: 8px; font: inherit; }
+    input[type="search"] { padding-left: 14px; }
+    .info { margin: 8px 0 0; color: #526174; font-size: .9rem; }
+    button { margin-top: 18px; padding: 11px 16px; border: 0; border-radius: 8px; background: #155eef; color: white; cursor: pointer; font: inherit; font-weight: 600; }
+    button:disabled { opacity: .65; cursor: wait; }
+    #status { min-height: 1.25em; margin-top: 14px; color: #526174; }
+    #answer { white-space: pre-wrap; line-height: 1.55; }
+  </style>
+</head>
+<body>
+  <h1>Research Agent</h1>
+  <p class="info">Search online, and upload a document only if you want it included in the answer.</p>
+
+  <section class="card" aria-labelledby="upload-heading">
+    <h2 id="upload-heading">Upload a document</h2>
+    <form id="upload-form">
+      <label for="document-file">Document file</label>
+      <input id="document-file" name="file" type="file" accept=".pdf,.docx,.txt" required>
+      <p class="info">Optional: choose a PDF, DOCX, or TXT file up to 10 MB.</p>
+      <button type="submit">Upload document</button>
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="research-heading">
+    <h2 id="research-heading">Research</h2>
+    <form id="research-form">
+      <label for="query">What would you like to research?</label>
+      <input id="query" name="query" type="search" placeholder="Search..." minlength="3" required>
+      <p class="info">Ask anything. We search online and also use any document you upload.</p>
+      <button type="submit">Research</button>
+    </form>
+    <p id="status" role="status"></p>
+    <article id="result" hidden>
+      <h2>Answer</h2>
+      <div id="answer"></div>
+    </article>
+  </section>
+
+  <script>
+    const status = document.querySelector('#status');
+    function setLoading(form, loading, message = '') {
+      form.querySelector('button').disabled = loading;
+      status.textContent = message;
+    }
+
+    document.querySelector('#upload-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      setLoading(form, true, 'Uploading and indexing document…');
+      try {
+        const response = await fetch('/documents/upload', { method: 'POST', body: new FormData(form) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || 'Document upload failed.');
+        form.reset();
+        status.textContent = `${data.filename} is ready. Your next search will include it.`;
+      } catch (error) {
+        status.textContent = error.message;
+      } finally {
+        setLoading(form, false, status.textContent);
+      }
+    });
+
+    document.querySelector('#research-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      setLoading(form, true, 'Researching…');
+      document.querySelector('#result').hidden = true;
+      try {
+        const response = await fetch('/research', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: form.query.value })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || 'Research request failed.');
+        document.querySelector('#answer').textContent = data.answer;
+        document.querySelector('#result').hidden = false;
+        status.textContent = 'Research complete.';
+      } catch (error) {
+        status.textContent = error.message;
+      } finally {
+        setLoading(form, false, status.textContent);
+      }
+    });
+  </script>
+</body>
+</html>

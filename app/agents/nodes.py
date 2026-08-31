@@ -14,6 +14,8 @@ from app.agents.prompts import (
 
 from app.rag.retriever import RetrievalServiceError
 
+import json
+
 async def research_node(state: ResearchState) -> ResearchState:
     query = state["query"]
     plan = state.get("plan", "")
@@ -79,12 +81,13 @@ def web_research_node(state: ResearchState) -> ResearchState:
 
 def rag_research_node(state: ResearchState) -> ResearchState:
     query = state["query"]
+    document_ids = state.get("document_ids")
 
     try:
         results = retrieve_documents_tool.invoke(
-            {"query": query}
+            {"query": query, "document_ids": document_ids}
         )
-
+       
         return {
             **state,
             "rag_results": results,
@@ -97,7 +100,9 @@ def rag_research_node(state: ResearchState) -> ResearchState:
             "rag_results": [],
             "rag_error": str(exc),
         }
-    
+    except Exception as exc:
+        raise
+
 async def verification_node(state: ResearchState) -> ResearchState:
     query = state["query"]
     final_answer = state.get("final_answer", "")
@@ -116,8 +121,15 @@ async def verification_node(state: ResearchState) -> ResearchState:
 
     import json
 
+    cleaned = result.strip()
+    if cleaned.startswith("```"):
+        cleaned = cleaned.strip("`")
+        if cleaned.lower().startswith("json"):
+            cleaned = cleaned[4:]
+        cleaned = cleaned.strip()
+
     try:
-        verification = json.loads(result)
+        verification = json.loads(cleaned)
     except json.JSONDecodeError:
         verification = {
             "verified": False,

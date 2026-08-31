@@ -21,6 +21,7 @@ class VectorStore:
         self,
         query_embedding: list[float],
         top_k: int = 3,
+        document_ids: list[str] | None = None,
     ) -> list[str]:
         if not self.documents:
             return []
@@ -29,11 +30,27 @@ class VectorStore:
 
         document_vectors = np.array(self.embeddings)
 
-        scores = document_vectors @ query_vector
+        if document_ids is None:
+            eligible_indices = list(range(len(self.documents)))
+        else:
+            requested_ids = set(document_ids)
+            eligible_indices = [
+                index
+                for index, stored_id in enumerate(self.document_ids)
+                if stored_id in requested_ids
+            ]
 
-        top_indices = np.argsort(scores)[::-1][:top_k]
+        if not eligible_indices:
+            return []
 
-        return [self.documents[index] for index in top_indices]
+        scores = document_vectors[eligible_indices] @ query_vector
+
+        ranked_indices = np.argsort(scores)[::-1][:top_k]
+
+        return [
+            self.documents[eligible_indices[index]]
+            for index in ranked_indices
+        ]
 
     def delete_document(self, document_id: str) -> bool:
         keep_indices = [

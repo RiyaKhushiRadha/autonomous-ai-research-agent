@@ -14,6 +14,7 @@ class RetrievalServiceError(Exception):
 def retrieve_documents(
     query: str,
     top_k: int = 3,
+    document_ids: list[str] | None = None,
 ) -> list[str]:
     try:
         query_embedding = create_query_embedding(query)
@@ -21,6 +22,7 @@ def retrieve_documents(
         return vector_store.search(
             query_embedding=query_embedding,
             top_k=top_k,
+            document_ids=document_ids,
         )
 
     except Exception as exc:
@@ -31,11 +33,13 @@ def retrieve_documents(
 
 class DocumentRetriever(BaseRetriever):
     top_k: int = 3
+    document_ids: list[str] | None = None
 
     def _get_relevant_documents(self, query: str) -> List[Document]:
         results = retrieve_documents(
             query=query,
             top_k=self.top_k,
+            document_ids=self.document_ids,
         )
 
         return [
